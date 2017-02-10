@@ -8,5 +8,6 @@ s.author       = { "LeoNatan" => "lnatan@wix.com" }
 s.platform     = :ios, '9.0'
 s.source       = { :git => "https://github.com/bandlab/LNPopupController.git", :tag => 'v2.1.4.1' }
 s.source_files = "Sources/**/*.{h,m}"
+s.private_header_files = "Sources/LNPopupController/Private/*.h"
 s.requires_arc = true
 end
