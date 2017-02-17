@@ -54,7 +54,7 @@
 @interface MarqueeLabel () <__MarqueeLabelType> @end
 
 const CGFloat LNPopupBarHeightCompact = 40.0;
-const CGFloat LNPopupBarHeightProminent = 64.0;
+const CGFloat LNPopupBarHeightProminent = 50.0;
 const CGFloat LNPopupBarProminentImageWidth = 48.0;
 
 const NSInteger LNBackgroundStyleInherit = -1;
