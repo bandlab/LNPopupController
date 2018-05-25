@@ -712,12 +712,10 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	if(t > 0)
 	{
 		[self _setIgnoringLayoutDuringTransition:YES];
-		
-		[UIView animateWithDuration:0.5 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
-			[self __repositionPopupBarToClosed_hack];
-		} completion:nil];
-		
-		[self.selectedViewController.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+
+        [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            [self __repositionPopupBarToClosed_hack];
+        } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
 			[self _setIgnoringLayoutDuringTransition:NO];
 			[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
 		}];
@@ -733,21 +731,19 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	
 	if(t > 0)
 	{
-		[UIView animateWithDuration:0.5 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
-			[self __repositionPopupBarToClosed_hack];
-		} completion:nil];
-		
-		[self.selectedViewController.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-			if(context.isCancelled)
-			{
-				[self _setTabBarHiddenDuringTransition:YES];
-			}
-			[UIView animateWithDuration:0.15 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
-				[self __repositionPopupBarToClosed_hack];
-			} completion:^(BOOL finished) {
-				[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
-			}];
-		}];
+        [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            [self __repositionPopupBarToClosed_hack];
+        } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            if(context.isCancelled)
+            {
+                [self _setTabBarHiddenDuringTransition:YES];
+            }
+            [UIView animateWithDuration:0.15 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
+                [self __repositionPopupBarToClosed_hack];
+            } completion:^(BOOL finished) {
+                [self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+            }];
+        }];
 	}
 }
 #endif
