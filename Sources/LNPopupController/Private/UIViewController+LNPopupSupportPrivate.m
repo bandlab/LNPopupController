@@ -8,21 +8,53 @@
 
 #import "UIViewController+LNPopupSupportPrivate.h"
 #import "LNPopupController.h"
+#import "_LNPopupBase64Utils.h"
 
 @import ObjectiveC;
+@import Darwin;
 
 static const void* LNToolbarHiddenBeforeTransition = &LNToolbarHiddenBeforeTransition;
 static const void* LNToolbarBuggy = &LNToolbarBuggy;
+static const void* LNPopupAdjustingInsets = &LNPopupAdjustingInsets;
 
 #ifndef LNPopupControllerEnforceStrictClean
+//_setContentOverlayInsets:
 static NSString* const sCoOvBase64 = @"X3NldENvbnRlbnRPdmVybGF5SW5zZXRzOg==";
+//_updateContentOverlayInsetsForSelfAndChildren
 static NSString* const upCoOvBase64 = @"X3VwZGF0ZUNvbnRlbnRPdmVybGF5SW5zZXRzRm9yU2VsZkFuZENoaWxkcmVu";
+//_edgeInsetsForChildViewController:insetsAreAbsolute:
 static NSString* const edInsBase64 = @"X2VkZ2VJbnNldHNGb3JDaGlsZFZpZXdDb250cm9sbGVyOmluc2V0c0FyZUFic29sdXRlOg==";
+//_hideBarWithTransition:isExplicit:
 static NSString* const hBWTiEBase64 = @"X2hpZGVCYXJXaXRoVHJhbnNpdGlvbjppc0V4cGxpY2l0Og==";
+//_showBarWithTransition:isExplicit:
 static NSString* const sBWTiEBase64 = @"X3Nob3dCYXJXaXRoVHJhbnNpdGlvbjppc0V4cGxpY2l0Og==";
+//_setToolbarHidden:edge:duration:
 static NSString* const sTHedBase64 = @"X3NldFRvb2xiYXJIaWRkZW46ZWRnZTpkdXJhdGlvbjo=";
+//_viewControllerUnderlapsStatusBar
 static NSString* const vCUSBBase64 = @"X3ZpZXdDb250cm9sbGVyVW5kZXJsYXBzU3RhdHVzQmFy";
-static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6ZmluaXNoZWQ6Y29udGV4dDo=";
+//_hideShowNavigationBarDidStop:finished:context:
+static NSString* const hSNBDSfcBase64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6ZmluaXNoZWQ6Y29udGV4dDo=";
+//_viewSafeAreaInsetsFromScene
+static NSString* const vSAIFSBase64 = @"X3ZpZXdTYWZlQXJlYUluc2V0c0Zyb21TY2VuZQ==";
+//_updateContentOverlayInsetsFromParentIfNecessary
+static NSString* const uCOIFPINBase64 = @"X3VwZGF0ZUNvbnRlbnRPdmVybGF5SW5zZXRzRnJvbVBhcmVudElmTmVjZXNzYXJ5";
+//_setContentOverlayInsets:andLeftMargin:rightMargin:
+static NSString* const sCOIaLMrMBase64 = @"X3NldENvbnRlbnRPdmVybGF5SW5zZXRzOmFuZExlZnRNYXJnaW46cmlnaHRNYXJnaW46";
+//_updateLayoutForStatusBarAndInterfaceOrientation
+static NSString* const uLFSBAIO = @"X3VwZGF0ZUxheW91dEZvclN0YXR1c0JhckFuZEludGVyZmFjZU9yaWVudGF0aW9u";
+//_accessibilitySpeakThisViewController
+static NSString* const aSTVC = @"X2FjY2Vzc2liaWxpdHlTcGVha1RoaXNWaWV3Q29udHJvbGxlcg==";
+//UIViewControllerAccessibility
+static NSString* const uiVCA = @"VUlWaWV3Q29udHJvbGxlckFjY2Vzc2liaWxpdHk=";
+//UINavigationControllerAccessibility
+static NSString* const uiNVCA = @"VUlOYXZpZ2F0aW9uQ29udHJvbGxlckFjY2Vzc2liaWxpdHk=";
+//UITabBarControllerAccessibility
+static NSString* const uiTBCA = @"VUlUYWJCYXJDb250cm9sbGVyQWNjZXNzaWJpbGl0eQ==";
+
+static UIViewController* (*__orig_uiVCA_aSTVC)(id, SEL);
+static UIViewController* (*__orig_uiNVCA_aSTVC)(id, SEL);
+static UIViewController* (*__orig_uiTBCA_aSTVC)(id, SEL);
+
 #endif
 
 /**
@@ -39,7 +71,46 @@ static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6Zm
 
 @end
 
+#ifndef LNPopupControllerEnforceStrictClean
+static id __accessibilityBundleLoadObserver;
+__attribute__((constructor))
+static void __accessibilityBundleLoadHandler()
+{
+	__accessibilityBundleLoadObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSBundleDidLoadNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull note) {
+		NSBundle* bundle = note.object;
+		if([bundle.bundleURL.lastPathComponent isEqualToString:@"UIKit.axbundle"] == NO)
+		{
+			return;
+		}
+		
+		NSString* selName = _LNPopupDecodeBase64String(aSTVC);
+		
+		NSString* clsName = _LNPopupDecodeBase64String(uiVCA);
+		Method m1 = class_getInstanceMethod(NSClassFromString(clsName), NSSelectorFromString(selName));
+		__orig_uiVCA_aSTVC = (void*)method_getImplementation(m1);
+		Method m2 = class_getInstanceMethod([UIViewController class], NSSelectorFromString(@"_aSTVC"));
+		method_exchangeImplementations(m1, m2);
+		
+		clsName = _LNPopupDecodeBase64String(uiNVCA);
+		m1 = class_getInstanceMethod(NSClassFromString(clsName), NSSelectorFromString(selName));
+		__orig_uiNVCA_aSTVC = (void*)method_getImplementation(m1);
+		m2 = class_getInstanceMethod([UINavigationController class], NSSelectorFromString(@"_aSTVC"));
+		method_exchangeImplementations(m1, m2);
+		
+		clsName = _LNPopupDecodeBase64String(uiTBCA);
+		m1 = class_getInstanceMethod(NSClassFromString(clsName), NSSelectorFromString(selName));
+		__orig_uiTBCA_aSTVC = (void*)method_getImplementation(m1);
+		m2 = class_getInstanceMethod([UITabBarController class], NSSelectorFromString(@"_aSTVC"));
+		method_exchangeImplementations(m1, m2);
+		
+		[[NSNotificationCenter defaultCenter] removeObserver:__accessibilityBundleLoadObserver];
+		__accessibilityBundleLoadObserver = nil;
+	}];
+}
+#endif
+
 @interface UIViewController ()
+//_edgeInsetsForChildViewController:insetsAreAbsolute:
 - (UIEdgeInsets)eIFCVC:(UIViewController*)controller iAA:(BOOL*)absolute;
 @end
 @interface UIViewController (LNPopupLayout) @end
@@ -73,19 +144,74 @@ static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6Zm
 		m2 = class_getInstanceMethod([self class], @selector(_ln_willTransitionToTraitCollection:withTransitionCoordinator:));
 		method_exchangeImplementations(m1, m2);
 		
+		m1 = class_getInstanceMethod([self class], @selector(presentViewController:animated:completion:));
+		m2 = class_getInstanceMethod([self class], @selector(_ln_presentViewController:animated:completion:));
+		method_exchangeImplementations(m1, m2);
+		
 #ifndef LNPopupControllerEnforceStrictClean
-		NSString* selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:vCUSBBase64 options:0] encoding:NSUTF8StringEncoding];
+		//_viewControllerUnderlapsStatusBar
+		NSString* selName = _LNPopupDecodeBase64String(vCUSBBase64);
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(_vCUSB));
 		method_exchangeImplementations(m1, m2);
 		
-		selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:sCoOvBase64 options:0] encoding:NSUTF8StringEncoding];
-		
+		//_updateLayoutForStatusBarAndInterfaceOrientation
+		selName = _LNPopupDecodeBase64String(uLFSBAIO);
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
-		m2 = class_getInstanceMethod([self class], @selector(_sCoOvIns:));
+		m2 = class_getInstanceMethod([self class], @selector(_uLFSBAIO));
 		method_exchangeImplementations(m1, m2);
+		
+		if(NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 11)
+		{
+			//_setContentOverlayInsets:
+			selName = _LNPopupDecodeBase64String(sCoOvBase64);
+			m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
+			m2 = class_getInstanceMethod([self class], @selector(_sCoOvIns:));
+			method_exchangeImplementations(m1, m2);
+		}
+		else
+		{
+			//_viewSafeAreaInsetsFromScene
+			selName = _LNPopupDecodeBase64String(vSAIFSBase64);
+			m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
+			if(m1 != nil)
+			{
+				m2 = class_getInstanceMethod([self class], @selector(_vSAIFS));
+				method_exchangeImplementations(m1, m2);
+			}
+			
+			//_updateContentOverlayInsetsFromParentIfNecessary
+			selName = _LNPopupDecodeBase64String(uCOIFPINBase64);
+			m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
+			if(m1 != nil)
+			{
+				m2 = class_getInstanceMethod([self class], @selector(_uCOIFPIN));
+				method_exchangeImplementations(m1, m2);
+			}
+			
+			//_setContentOverlayInsets:andLeftMargin:rightMargin:
+			selName = _LNPopupDecodeBase64String(sCOIaLMrMBase64);
+			m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
+			if(m1 != nil)
+			{
+				m2 = class_getInstanceMethod([self class], @selector(_sCOI:aLM:rM:));
+				method_exchangeImplementations(m1, m2);
+			}
+		}
 #endif
 	});
+}
+
+- (void)_ln_presentViewController:(UIViewController *)viewControllerToPresent animated:(BOOL)flag completion:(void (^)(void))completion
+{
+	if(self.popupPresentationContainerViewController)
+	{
+		[self.popupPresentationContainerViewController presentViewController:viewControllerToPresent animated:flag completion:completion];
+	}
+	else
+	{
+		[self _ln_presentViewController:viewControllerToPresent animated:flag completion:completion];
+	}
 }
 
 - (void)_ln_setNeedsStatusBarAppearanceUpdate
@@ -118,6 +244,21 @@ static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6Zm
 	}
 	
 	[self _ln_willTransitionToTraitCollection:newCollection withTransitionCoordinator:coordinator];
+}
+
+- (UIViewController*)_findAncestorParentPopupContainerController
+{
+	if(self._ln_popupController_nocreate)
+	{
+		return self;
+	}
+	
+	if(self.parentViewController == nil)
+	{
+		return nil;
+	}
+	
+	return [self.parentViewController _findAncestorParentPopupContainerController];
 }
 
 - (UIViewController*)_findChildInPopupPresentation
@@ -185,37 +326,158 @@ static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6Zm
 }
 
 #ifndef LNPopupControllerEnforceStrictClean
+
+//_accessibilitySpeakThisViewController
+- (UIViewController*)_aSTVC
+{
+	if(self.popupContentViewController && self.popupPresentationState == LNPopupPresentationStateOpen)
+	{
+		return self.popupContentViewController;
+	}
+	
+	return __orig_uiVCA_aSTVC(self, _cmd);
+}
+
+//_updateLayoutForStatusBarAndInterfaceOrientation
+- (void)_common_uLFSBAIO
+{
+	if(self.popupContentViewController)
+	{
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[UIView animateWithDuration:UIApplication.sharedApplication.statusBarOrientationAnimationDuration delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options: UIViewAnimationOptionLayoutSubviews | UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionAllowAnimatedContent animations:^{
+				[self.popupContentViewController _uLFSBAIO];
+				[self._ln_popupController_nocreate _repositionPopupCloseButton];
+			} completion:nil];
+		});
+	}
+}
+
+//_updateLayoutForStatusBarAndInterfaceOrientation
+- (void)_uLFSBAIO
+{
+	[self _uLFSBAIO];
+	
+	[self _common_uLFSBAIO];
+}
+
+//_updateContentOverlayInsetsFromParentIfNecessary
+- (void)_uCOIFPIN
+{
+	[self _uCOIFPIN];
+}
+
+//_setContentOverlayInsets:andLeftMargin:rightMargin:
+- (void)_sCOI:(UIEdgeInsets)insets aLM:(CGFloat)l rM:(CGFloat)r
+{
+	if([self _isContainedInPopupController])
+	{
+		if (@available(iOS 11.0, *))
+		{
+			insets = self.popupPresentationContainerViewController.view.superview.safeAreaInsets;
+			insets.top = MAX(self.view.window.safeAreaInsets.top, self.prefersStatusBarHidden == NO ? [[UIApplication sharedApplication] statusBarFrame].size.height : 0);
+			insets.bottom = self.view.window.safeAreaInsets.bottom;
+			
+			UINavigationController* nvc = self.navigationController;
+			if(nvc != nil)
+			{
+				if((self.edgesForExtendedLayout & UIRectEdgeTop) == UIRectEdgeTop)
+				{
+					insets.top += !nvc.isNavigationBarHidden * nvc.navigationBar.bounds.size.height;
+				}
+				else
+				{
+					insets.top = nvc.isNavigationBarHidden ? insets.top : 0;
+				}
+				
+				if((self.edgesForExtendedLayout & UIRectEdgeBottom) == UIRectEdgeBottom)
+				{
+					insets.bottom += !nvc.isToolbarHidden * nvc.toolbar.bounds.size.height;
+				}
+				else
+				{
+					insets.bottom = nvc.isToolbarHidden ? insets.bottom : 0;
+				}
+			}
+			
+			UITabBarController* tvc = self.tabBarController;
+			if(tvc != nil && tvc.tabBar.window != nil)
+			{
+				if((self.edgesForExtendedLayout & UIRectEdgeBottom) == UIRectEdgeBottom)
+				{
+					insets.bottom = tvc.tabBar.bounds.size.height;
+				}
+				else
+				{
+					insets.bottom = 0;
+				}
+			}
+		}
+	}
+	
+	[self _sCOI:insets aLM:l rM:r];
+}
+
+//_setContentOverlayInsets:
 - (void)_sCoOvIns:(UIEdgeInsets)insets
 {
-	if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden && ![self isKindOfClass:[UITabBarController class]] && ![self isKindOfClass:[UINavigationController class]])
+	if(NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 11)
 	{
-		insets.bottom += self.defaultFrameForBottomDockingView_internalOrDeveloper.size.height + self._ln_popupController_nocreate.popupBar.frame.size.height;
+		if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden && ![self isKindOfClass:[UITabBarController class]] && ![self isKindOfClass:[UINavigationController class]])
+		{
+			insets.bottom += self.defaultFrameForBottomDockingView_internalOrDeveloper.size.height + self._ln_popupController_nocreate.popupBar.frame.size.height;
+		}
+		
+		if([self _isContainedInPopupController])
+		{
+			insets.top = self.prefersStatusBarHidden == NO ? [[UIApplication sharedApplication] statusBarFrame].size.height : 0;
+			insets.bottom = 0;
+		}
 	}
 	
 	[self _sCoOvIns:insets];
 }
 
+//_viewSafeAreaInsetsFromScene
+- (UIEdgeInsets)_vSAIFS
+{
+	if([self _isContainedInPopupController])
+	{
+		if (@available(iOS 11.0, *)) {
+			return self.popupPresentationContainerViewController.view.superview.safeAreaInsets;
+		}
+	}
+	
+	UIEdgeInsets insets = [self _vSAIFS];
+	
+	return insets;
+}
+
+//_edgeInsetsForChildViewController:insetsAreAbsolute:
 - (UIEdgeInsets)_ln_common_eIFCVC:(UIViewController*)controller iAA:(BOOL*)absolute
 {
 	UIEdgeInsets insets = [self eIFCVC:controller iAA:absolute];
 	
-	if([controller _isContainedInPopupController])
+	if(NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 11)
 	{
-		insets.top += controller.prefersStatusBarHidden == NO ? [[UIApplication sharedApplication] statusBarFrame].size.height : 0;
-		insets.bottom = 0;
-		*absolute = YES;
+		if([controller _isContainedInPopupController])
+		{
+			insets.top += controller.prefersStatusBarHidden == NO ? [[UIApplication sharedApplication] statusBarFrame].size.height : 0;
+			insets.bottom = 0;
+			*absolute = YES;
+			
+			return insets;
+		}
 		
-		return insets;
-	}
-	
-	if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden)
-	{
-		insets.bottom += self._ln_popupController_nocreate.popupBar.bounds.size.height;
+		if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden)
+		{
+			insets.bottom += self._ln_popupController_nocreate.popupBar.bounds.size.height;
+		}
 	}
 	
 	return insets;
 }
 
+//_viewControllerUnderlapsStatusBar
 - (BOOL)_vCUSB
 {
 	if ([self _isContainedInPopupController])
@@ -228,6 +490,20 @@ static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6Zm
 	return [self _vCUSB];
 }
 #endif
+
+- (void)_layoutPopupBarOrderForTransition
+{
+	[self.bottomDockingViewForPopup_internalOrDeveloper.superview bringSubviewToFront:self.bottomDockingViewForPopup_internalOrDeveloper];
+	[self._ln_popupController_nocreate.popupContentView.superview bringSubviewToFront:self._ln_popupController_nocreate.popupContentView];
+	[self._ln_popupController_nocreate.popupBar.superview bringSubviewToFront:self._ln_popupController_nocreate.popupBar];
+}
+
+- (void)_layoutPopupBarOrderForUse
+{
+	[self._ln_popupController_nocreate.popupBar.superview bringSubviewToFront:self._ln_popupController_nocreate.popupBar];
+	[self.bottomDockingViewForPopup_internalOrDeveloper.superview bringSubviewToFront:self.bottomDockingViewForPopup_internalOrDeveloper];
+	[self._ln_popupController_nocreate.popupContentView.superview bringSubviewToFront:self._ln_popupController_nocreate.popupContentView];
+}
 
 - (void)_ln_popup_viewDidLayoutSubviews
 {
@@ -245,31 +521,55 @@ static NSString* const hSNBDSfc64 = @"X2hpZGVTaG93TmF2aWdhdGlvbkJhckRpZFN0b3A6Zm
 			self._ln_bottomBarSupport.hidden = YES;
 		}
 		
-		if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden)
+		if(self._ignoringLayoutDuringTransition == NO && self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden)
 		{
 			[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+		}
+		
+		if(self._ignoringLayoutDuringTransition == NO)
+		{
+			[self _layoutPopupBarOrderForUse];
 		}
 	}
 }
 
+- (BOOL)_ignoringLayoutDuringTransition
+{
+	return [objc_getAssociatedObject(self, LNPopupAdjustingInsets) boolValue];
+}
+
+- (void)_setIgnoringLayoutDuringTransition:(BOOL)ignoringLayoutDuringTransition
+{
+	objc_setAssociatedObject(self, LNPopupAdjustingInsets, @(ignoringLayoutDuringTransition), OBJC_ASSOCIATION_RETAIN);
+}
+
 @end
 
-void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOOL layout)
+void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOOL layout, CGFloat additionalSafeAreaInsetsBottom)
 {
 #ifndef LNPopupControllerEnforceStrictClean
 	static NSString* selName;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
-		selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:upCoOvBase64 options:0] encoding:NSUTF8StringEncoding];
+		//_updateContentOverlayInsetsForSelfAndChildren
+		selName = _LNPopupDecodeBase64String(upCoOvBase64);
 	});
 	
 	void (*dispatchMethod)(id, SEL) = (void(*)(id, SEL))objc_msgSend;
-	
 	dispatchMethod(controller, NSSelectorFromString(selName));
 	
 	[controller.childViewControllers enumerateObjectsUsingBlock:^(__kindof UIViewController * __nonnull obj, NSUInteger idx, BOOL * __nonnull stop) {
-		_LNPopupSupportFixInsetsForViewController(obj, NO);
+		_LNPopupSupportFixInsetsForViewController(obj, NO, 0);
 	}];
+	
+	if (@available(iOS 11.0, *)) {
+		if(controller._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden)
+		{
+			UIEdgeInsets insets = controller.additionalSafeAreaInsets;
+			insets.bottom += additionalSafeAreaInsetsBottom;
+			controller.additionalSafeAreaInsets = insets;
+		}
+	}
 	
 	if(layout)
 	{
@@ -283,6 +583,17 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 @interface UITabBarController (LNPopupSupportPrivate) @end
 @implementation UITabBarController (LNPopupSupportPrivate)
 
+- (BOOL)_isTabBarHiddenDuringTransition
+{
+	NSNumber* isHidden = objc_getAssociatedObject(self, LNToolbarHiddenBeforeTransition);
+	return isHidden.boolValue;
+}
+
+- (void)_setTabBarHiddenDuringTransition:(BOOL)toolbarHidden
+{
+	objc_setAssociatedObject(self, LNToolbarHiddenBeforeTransition, @(toolbarHidden), OBJC_ASSOCIATION_RETAIN);
+}
+
 - (nullable UIView *)bottomDockingViewForPopup_nocreate
 {
 	return self.tabBar;
@@ -293,11 +604,22 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	return self.tabBar;
 }
 
+- (UIEdgeInsets)insetsForBottomDockingView
+{
+	if (@available(iOS 11.0, *)) {
+		return self.tabBar.hidden == NO && self._isTabBarHiddenDuringTransition == NO ? UIEdgeInsetsZero : self.view.superview.safeAreaInsets;
+	} else {
+		return UIEdgeInsetsZero;
+	}
+}
+
 - (CGRect)defaultFrameForBottomDockingView
 {
 	CGRect bottomBarFrame = self.tabBar.frame;
+	CGSize bottomBarSizeThatFits = [self.tabBar sizeThatFits:CGSizeZero];
+	bottomBarFrame.size.height = MAX(bottomBarFrame.size.height, bottomBarSizeThatFits.height);
 	
-	bottomBarFrame.origin = CGPointMake(0, self.view.bounds.size.height - bottomBarFrame.size.height);
+	bottomBarFrame.origin = CGPointMake(0, self.view.bounds.size.height - (self._isTabBarHiddenDuringTransition ? 0.0 : bottomBarFrame.size.height));
 	
 	return bottomBarFrame;
 }
@@ -315,22 +637,30 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 		method_exchangeImplementations(m1, m2);
 		
 #ifndef LNPopupControllerEnforceStrictClean
-		NSString* selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:edInsBase64 options:0] encoding:NSUTF8StringEncoding];
+		NSString* selName;
 		
+		//_edgeInsetsForChildViewController:insetsAreAbsolute:
+		selName = _LNPopupDecodeBase64String(edInsBase64);
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(eIFCVC:iAA:));
 		method_exchangeImplementations(m1, m2);
 		
-		selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:hBWTiEBase64 options:0] encoding:NSUTF8StringEncoding];
-		
+		//_hideBarWithTransition:isExplicit:
+		selName = _LNPopupDecodeBase64String(hBWTiEBase64);
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(hBWT:iE:));
 		method_exchangeImplementations(m1, m2);
 		
-		selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:sBWTiEBase64 options:0] encoding:NSUTF8StringEncoding];
-		
+		//_showBarWithTransition:isExplicit:
+		selName = _LNPopupDecodeBase64String(sBWTiEBase64);
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(sBWT:iE:));
+		method_exchangeImplementations(m1, m2);
+		
+		//_updateLayoutForStatusBarAndInterfaceOrientation
+		selName = _LNPopupDecodeBase64String(uLFSBAIO);
+		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
+		m2 = class_getInstanceMethod([self class], @selector(_uLFSBAIO));
 		method_exchangeImplementations(m1, m2);
 #endif
 	});
@@ -338,46 +668,83 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 
 #ifndef LNPopupControllerEnforceStrictClean
 
-- (UIEdgeInsets)eIFCVC:(UIViewController*)controller iAA:(BOOL*)absolute
+//_accessibilitySpeakThisViewController
+- (UIViewController*)_aSTVC
 {
-	UIEdgeInsets rv = [self _ln_common_eIFCVC:controller iAA:absolute];
-	
-	if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden && [[self valueForKey:@"isBarHidden"] isEqualToNumber:@YES])
+	if(self.popupContentViewController && self.popupPresentationState == LNPopupPresentationStateOpen)
 	{
-		rv.bottom -= self._ln_popupController_nocreate.popupBar.frame.size.height;
+		return self.popupContentViewController;
 	}
 	
-	return rv;
+	return __orig_uiTBCA_aSTVC(self, _cmd);
 }
 
+//_updateLayoutForStatusBarAndInterfaceOrientation
+- (void)_uLFSBAIO
+{
+	[self _uLFSBAIO];
+	
+	[self _common_uLFSBAIO];
+}
+
+//_edgeInsetsForChildViewController:insetsAreAbsolute:
+- (UIEdgeInsets)eIFCVC:(UIViewController*)controller iAA:(BOOL*)absolute
+{
+	return [self _ln_common_eIFCVC:controller iAA:absolute];
+}
+
+- (void)__repositionPopupBarToClosed_hack
+{
+	CGRect defaultFrame = [self defaultFrameForBottomDockingView];
+	CGRect frame = self._ln_popupController_nocreate.popupBar.frame;
+	frame.origin.y = defaultFrame.origin.y - frame.size.height - self.insetsForBottomDockingView.bottom;
+	self._ln_popupController_nocreate.popupBar.frame = frame;
+}
+
+//_hideBarWithTransition:isExplicit:
 - (void)hBWT:(NSInteger)t iE:(BOOL)e
 {
-	[self hBWT:t iE:e];
-	[self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-	[self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-	[self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+	[self _setTabBarHiddenDuringTransition:YES];
+	[self _setIgnoringLayoutDuringTransition:YES];
 	
-	[self.selectedViewController.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context)
-	 {
-		 [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-		 [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-		 [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
-	 }];
+	[self hBWT:t iE:e];
+	
+	if(t > 0)
+	{
+		[self _setIgnoringLayoutDuringTransition:YES];
+
+        [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            [self __repositionPopupBarToClosed_hack];
+        } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+			[self _setIgnoringLayoutDuringTransition:NO];
+			[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+		}];
+	}
 }
 
+//_showBarWithTransition:isExplicit:
 - (void)sBWT:(NSInteger)t iE:(BOOL)e
 {
-	[self sBWT:t iE:e];
-	[self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-	[self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-	[self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+	[self _setTabBarHiddenDuringTransition:NO];
 	
-	[self.selectedViewController.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context)
-	 {
-		 [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-		 [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-		 [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
-	 }];
+	[self sBWT:t iE:e];
+	
+	if(t > 0)
+	{
+        [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            [self __repositionPopupBarToClosed_hack];
+        } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            if(context.isCancelled)
+            {
+                [self _setTabBarHiddenDuringTransition:YES];
+            }
+            [UIView animateWithDuration:0.15 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
+                [self __repositionPopupBarToClosed_hack];
+            } completion:^(BOOL finished) {
+                [self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+            }];
+        }];
+	}
 }
 #endif
 
@@ -396,42 +763,6 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 @interface UINavigationController (LNPopupSupportPrivate) @end
 @implementation UINavigationController (LNPopupSupportPrivate)
 
-- (BOOL)isToolbarHiddenDuringTransition
-{
-	NSNumber* isHidden = objc_getAssociatedObject(self, LNToolbarHiddenBeforeTransition);
-	
-	if(isHidden == nil)
-	{
-		return self.isToolbarHidden;
-	}
-	
-	return isHidden.boolValue;
-}
-
-- (void)setToolbarHiddenDuringTransition:(BOOL)toolbarHidden
-{
-	objc_setAssociatedObject(self, LNToolbarHiddenBeforeTransition, @(toolbarHidden), OBJC_ASSOCIATION_RETAIN);
-}
-
-- (BOOL)isToolbarBuggy
-{
-	NSNumber* isHidden = objc_getAssociatedObject(self, LNToolbarBuggy);
-	
-	if(isHidden == nil)
-	{
-		return NO;
-	}
-	
-	return isHidden.boolValue;
-}
-
-- (void)setToolbarBuggy:(BOOL)toolbarHidden
-{
-	NSLog(@"b:%@", @(toolbarHidden));
-	
-	objc_setAssociatedObject(self, LNToolbarBuggy, @(toolbarHidden), OBJC_ASSOCIATION_RETAIN);
-}
-
 - (nullable UIView *)bottomDockingViewForPopup_nocreate
 {
 	return self.toolbar;
@@ -444,22 +775,11 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 
 - (CGRect)defaultFrameForBottomDockingView
 {
-	CGRect bottomBarFrame = self.toolbar.frame;
+	CGRect toolbarBarFrame = self.toolbar.frame;
 	
-	if(self.isToolbarHiddenDuringTransition && self.isToolbarBuggy)
-	{
-		bottomBarFrame.origin = CGPointMake(-bottomBarFrame.size.width, self.view.bounds.size.height);
-	}
-	else if(self.isToolbarHiddenDuringTransition)
-	{
-		bottomBarFrame.origin = CGPointMake(bottomBarFrame.origin.x, self.view.bounds.size.height);
-	}
-	else
-	{
-		bottomBarFrame.origin = CGPointMake(bottomBarFrame.origin.x, self.view.bounds.size.height - bottomBarFrame.size.height);
-	}
+	toolbarBarFrame.origin = CGPointMake(toolbarBarFrame.origin.x, self.view.bounds.size.height - (self.isToolbarHidden ? 0.0 : toolbarBarFrame.size.height));
 	
-	return bottomBarFrame;
+	return toolbarBarFrame;
 }
 
 + (void)load
@@ -474,88 +794,115 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 		m2 = class_getInstanceMethod([self class], @selector(_ln_childViewControllerForStatusBarHidden));
 		method_exchangeImplementations(m1, m2);
 		
-		m1 = class_getInstanceMethod([self class], @selector(setNavigationBarHidden:animated:)),
-		m2 = class_getInstanceMethod([self class], @selector(_ln_setNavigationBarHidden:animated:)),
+		m1 = class_getInstanceMethod([self class], @selector(setNavigationBarHidden:animated:));
+		m2 = class_getInstanceMethod([self class], @selector(_ln_setNavigationBarHidden:animated:));
 		method_exchangeImplementations(m1, m2);
 		
 #ifndef LNPopupControllerEnforceStrictClean
-		NSString* selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:edInsBase64 options:0] encoding:NSUTF8StringEncoding];
+		NSString* selName;
+		//_edgeInsetsForChildViewController:insetsAreAbsolute:
+		selName = _LNPopupDecodeBase64String(edInsBase64);
 		
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(eIFCVC:iAA:));
 		method_exchangeImplementations(m1, m2);
 		
-		selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:sTHedBase64 options:0] encoding:NSUTF8StringEncoding];
+		//_setToolbarHidden:edge:duration:
+		selName = _LNPopupDecodeBase64String(sTHedBase64);
 		
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(_sTH:e:d:));
 		method_exchangeImplementations(m1, m2);
 		
-		selName = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:hSNBDSfc64 options:0] encoding:NSUTF8StringEncoding];
+		//_hideShowNavigationBarDidStop:finished:context:
+		selName = _LNPopupDecodeBase64String(hSNBDSfcBase64);
 		
 		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
 		m2 = class_getInstanceMethod([self class], @selector(hSNBDS:f:c:));
+		method_exchangeImplementations(m1, m2);
+		
+		//_updateLayoutForStatusBarAndInterfaceOrientation
+		selName = _LNPopupDecodeBase64String(uLFSBAIO);
+		m1 = class_getInstanceMethod([self class], NSSelectorFromString(selName));
+		m2 = class_getInstanceMethod([self class], @selector(_uLFSBAIO));
 		method_exchangeImplementations(m1, m2);
 #endif
 	});
 }
 
 #ifndef LNPopupControllerEnforceStrictClean
+
+//_accessibilitySpeakThisViewController
+- (UIViewController*)_aSTVC
+{
+	if(self.popupContentViewController && self.popupPresentationState == LNPopupPresentationStateOpen)
+	{
+		return self.popupContentViewController;
+	}
+	
+	return __orig_uiNVCA_aSTVC(self, _cmd);
+}
+
+//_updateLayoutForStatusBarAndInterfaceOrientation
+- (void)_uLFSBAIO
+{
+	[self _uLFSBAIO];
+	
+	[self _common_uLFSBAIO];
+}
+
 //Support for `hidesBottomBarWhenPushed`.
+//_setToolbarHidden:edge:duration:
 - (void)_sTH:(BOOL)arg1 e:(unsigned int)arg2 d:(CGFloat)arg3;
 {
-	BOOL prevToolbarHiddenDuringTransition = self.isToolbarHiddenDuringTransition;
-	
-	//During transition, the toolbar is displayed throught the entire animation, despite what `isToolbarHidden` may indicate.
-	[self setToolbarHiddenDuringTransition:(self.isToolbarHidden == arg1 && arg1 == YES)];
-	
 	//Move popup bar and content according to current state of the toolbar.
 	[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
 	
 	//Trigger the toolbar hide or show transition.
 	[self _sTH:arg1 e:arg2 d:arg3];
 	
-	//Display or hide the popup bar and content as needed.
-	[self._ln_popupController_nocreate.popupBar setHidden:self.isToolbarHiddenDuringTransition];
-	[self._ln_popupController_nocreate.popupContentView setHidden:self.isToolbarHiddenDuringTransition];
-	//Position the popup bar and content to the superview of the toolbar for the transition.
-	[self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-	
-	[[self transitionCoordinator] animateAlongsideTransitionInView:self._ln_popupController_nocreate.popupBar.superview animation:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+	void (^animations)(void) = ^ {
 		//During the transition, animate the popup bar and content together with the toolbar transition.
-		
 		[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
-	} completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-		[self setToolbarBuggy:context.isCancelled && context.percentComplete == 0.0];
-		
-		[self setToolbarHiddenDuringTransition: context.isCancelled ? prevToolbarHiddenDuringTransition : arg1];
+		[self _layoutPopupBarOrderForTransition];
+	};
+	
+	void (^completion)(BOOL finished) = ^ (BOOL finished) {
 		//Position the popup bar and content to the superview of the toolbar for the transition.
+		[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+		[self _layoutPopupBarOrderForUse];
+	};
+	
+	if(self.transitionCoordinator)
+	{
+		[self _setIgnoringLayoutDuringTransition:YES];
 		
-		[self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-		
-		//Display or hide the popup bar and content as needed.
-		[self._ln_popupController_nocreate.popupBar setHidden:self.isToolbarHiddenDuringTransition];
-		[self._ln_popupController_nocreate.popupContentView setHidden:self.isToolbarHiddenDuringTransition];
-	}];
+		[self.transitionCoordinator animateAlongsideTransitionInView:self._ln_popupController_nocreate.popupBar.superview animation:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+			animations();
+		} completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+			completion(context.isCancelled == NO);
+			
+			[self _setIgnoringLayoutDuringTransition:NO];
+		}];
+	}
+	else
+	{
+		[UIView animateWithDuration:arg3 animations:animations completion:completion];
+	}
 }
 
+//_edgeInsetsForChildViewController:insetsAreAbsolute:
 - (UIEdgeInsets)eIFCVC:(UIViewController*)controller iAA:(BOOL*)absolute
 {
-	UIEdgeInsets rv = [self _ln_common_eIFCVC:controller iAA:absolute];
-	
-	if(self._ln_popupController_nocreate.popupControllerState != LNPopupPresentationStateHidden && self.isToolbarHidden)
-	{
-		rv.bottom -= self._ln_popupController_nocreate.popupBar.frame.size.height;
-	}
-	
-	return rv;
+	return [self _ln_common_eIFCVC:controller iAA:absolute];
 }
 
+//_hideShowNavigationBarDidStop:finished:context:
 - (void)hSNBDS:(id)arg1 f:(id)arg2 c:(id)arg3;
 {
 	[self hSNBDS:arg1 f:arg2 c:arg3];
 	
-	[self _layoutPopupBarOrder];
+	[self _layoutPopupBarOrderForUse];
 }
 
 #endif
@@ -570,18 +917,11 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	return [self _ln_common_childViewControllerForStatusBarStyle];
 }
 
-- (void)_layoutPopupBarOrder
-{
-	[self._ln_popupController_nocreate.popupContentView.superview bringSubviewToFront:self._ln_popupController_nocreate.popupContentView];
-	[self._ln_popupController_nocreate.popupBar.superview bringSubviewToFront:self._ln_popupController_nocreate.popupBar];
-	[self.bottomDockingViewForPopup_internalOrDeveloper.superview bringSubviewToFront:self.bottomDockingViewForPopup_internalOrDeveloper];
-}
-
 - (void)_ln_setNavigationBarHidden:(BOOL)hidden animated:(BOOL)animated
 {
 	[self _ln_setNavigationBarHidden:hidden animated:animated];
 	
-	[self _layoutPopupBarOrder];
+	[self _layoutPopupBarOrderForUse];
 }
 
 @end

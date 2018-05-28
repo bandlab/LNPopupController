@@ -24,6 +24,7 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 
 @property (nonatomic, assign) UIBarStyle barStyle;
 @property (nonatomic, retain) UIColor* barTintColor;
+@property(nonatomic, assign, getter=isTranslucent) BOOL translucent;
 
 @end
 
@@ -33,6 +34,7 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 @property (nonatomic, strong) UIColor* systemTintColor;
 @property (nonatomic, strong) UIColor* systemBarTintColor;
 @property (nonatomic, strong) UIColor* systemBackgroundColor;
+@property (nonatomic, strong) UIColor* systemShadowColor;
 
 @property (nonatomic, weak, readwrite) LNPopupItem* popupItem;
 
@@ -58,6 +60,10 @@ extern LNPopupBarStyle _LNPopupResolveBarStyleFromBarStyle(LNPopupBarStyle style
 
 @property (nonatomic, copy, readwrite) NSArray<UIBarButtonItem*>* leftBarButtonItems;
 @property (nonatomic, copy, readwrite) NSArray<UIBarButtonItem*>* rightBarButtonItems;
+
+@property (nonatomic, strong, readwrite) UITapGestureRecognizer* popupOpenGestureRecognizer;
+@property (nonatomic, strong, readwrite) UILongPressGestureRecognizer* barHighlightGestureRecognizer;
+
 
 - (void)_delayBarButtonLayout;
 - (void)_layoutBarButtonItems;

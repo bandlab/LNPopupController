@@ -14,6 +14,8 @@
 
 @implementation LNPopupCustomBarViewController
 
+@dynamic preferredContentSize;
+
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
 	if([self isMemberOfClass:[LNPopupCustomBarViewController class]])
@@ -25,14 +27,23 @@
 	return [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
 }
 
-- (void)viewDidLoad
+- (BOOL)wantsDefaultTapGestureRecognizer
 {
-	self.preferredContentSize = CGSizeMake(-1, 80);
+	return YES;
+}
+
+- (BOOL)wantsDefaultPanGestureRecognizer
+{
+	return YES;
+}
+
+- (void)setPreferredContentSize:(CGSize)preferredContentSize
+{
+	[super setPreferredContentSize:preferredContentSize];
 }
 
 - (void)popupItemDidUpdate
 {
-	NSLog(@"popupItemDidUpdate");
 }
 
 @end

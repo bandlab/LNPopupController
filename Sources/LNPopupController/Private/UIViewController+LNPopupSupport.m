@@ -30,7 +30,7 @@ static const void* _LNPopupBottomBarSupportKey = &_LNPopupBottomBarSupportKey;
 
 @implementation UIViewController (LNPopupSupport)
 
-- (void)presentPopupBarWithContentViewController:(UIViewController*)controller openPopup:(BOOL)openPopup animated:(BOOL)animated completion:(nullable void(^)())completionBlock;
+- (void)presentPopupBarWithContentViewController:(UIViewController*)controller openPopup:(BOOL)openPopup animated:(BOOL)animated completion:(nullable void(^)(void))completionBlock;
 {
 	if(controller == nil)
 	{
@@ -43,30 +43,30 @@ static const void* _LNPopupBottomBarSupportKey = &_LNPopupBottomBarSupportKey;
 	[self._ln_popupController presentPopupBarAnimated:animated openPopup:openPopup completion:completionBlock];
 }
 
-- (void)presentPopupBarWithContentViewController:(UIViewController*)controller animated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)presentPopupBarWithContentViewController:(UIViewController*)controller animated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	[self presentPopupBarWithContentViewController:controller openPopup:NO animated:animated completion:completionBlock];
 }
 
-- (void)openPopupAnimated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)openPopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	[self._ln_popupController_nocreate openPopupAnimated:animated completion:completionBlock];
 }
 
-- (void)closePopupAnimated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)closePopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	[self._ln_popupController_nocreate closePopupAnimated:animated completion:completionBlock];
 }
 
-- (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	[self._ln_popupController_nocreate dismissPopupBarAnimated:animated completion:^{
 		//Cleanup
 		self.popupContentViewController.popupPresentationContainerViewController = nil;
 		self.popupContentViewController = nil;
 		
-		//No longer need to retain the popup controller after dismissing.
-		objc_setAssociatedObject(self, _LNPopupControllerKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		//The LNPopupController is no longer released here.
+		//There should be one popup controller per presenting controller per instance.
 		
 		if(completionBlock)
 		{
@@ -229,6 +229,16 @@ static const void* _LNPopupBottomBarSupportKey = &_LNPopupBottomBarSupportKey;
 - (nullable UIView *)bottomDockingViewForPopupBar
 {
 	return nil;
+}
+
+- (UIEdgeInsets)insetsForBottomDockingView
+{
+	if (@available(iOS 11.0, *))
+	{
+		return UIEdgeInsetsMake(0, 0, self.view.superview.safeAreaInsets.bottom, 0);
+	} else {
+		return UIEdgeInsetsZero;
+	}
 }
 
 - (CGRect)defaultFrameForBottomDockingView
