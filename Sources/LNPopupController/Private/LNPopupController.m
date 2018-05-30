@@ -1249,7 +1249,10 @@ static void __LNPopupControllerDeeplyEnumerateSubviewsUsingBlock(UIView* view, v
 
 - (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
-	if(_popupControllerState != LNPopupPresentationStateHidden)
+    BOOL isHidden = _popupControllerState == LNPopupPresentationStateHidden;
+    BOOL transitioningToHidden = _popupControllerState == LNPopupPresentationStateTransitioning &&
+                                 _popupControllerTargetState == LNPopupPresentationStateHidden;
+    if (!isHidden && !transitioningToHidden)
 	{
 		void (^dismissalAnimationCompletionBlock)(void) = ^
 		{
