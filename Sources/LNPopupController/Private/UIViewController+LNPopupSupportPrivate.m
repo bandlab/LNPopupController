@@ -9,6 +9,7 @@
 #import "UIViewController+LNPopupSupportPrivate.h"
 #import "LNPopupController.h"
 #import "_LNPopupBase64Utils.h"
+#import "LNPopupHiddenController.h"
 
 @import ObjectiveC;
 @import Darwin;
@@ -16,6 +17,7 @@
 static const void* LNToolbarHiddenBeforeTransition = &LNToolbarHiddenBeforeTransition;
 static const void* LNToolbarBuggy = &LNToolbarBuggy;
 static const void* LNPopupAdjustingInsets = &LNPopupAdjustingInsets;
+static const void* LNPopupShouldFollowTabBar = &LNPopupShouldFollowTabBar;
 
 #ifndef LNPopupControllerEnforceStrictClean
 //_setContentOverlayInsets:
@@ -543,6 +545,10 @@ static void __accessibilityBundleLoadHandler()
 	objc_setAssociatedObject(self, LNPopupAdjustingInsets, @(ignoringLayoutDuringTransition), OBJC_ASSOCIATION_RETAIN);
 }
 
+- (BOOL)shouldPresentPopup {
+    return YES;
+}
+
 @end
 
 void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOOL layout, CGFloat additionalSafeAreaInsetsBottom)
@@ -594,6 +600,17 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	objc_setAssociatedObject(self, LNToolbarHiddenBeforeTransition, @(toolbarHidden), OBJC_ASSOCIATION_RETAIN);
 }
 
+- (BOOL)_popupShouldFollowTabBar
+{
+    NSNumber* isHidden = objc_getAssociatedObject(self, LNPopupShouldFollowTabBar);
+    return isHidden.boolValue;
+}
+
+- (void)_setPopupShouldFollowTabBar:(BOOL)shouldFollow
+{
+    objc_setAssociatedObject(self, LNPopupShouldFollowTabBar, @(shouldFollow), OBJC_ASSOCIATION_RETAIN);
+}
+
 - (nullable UIView *)bottomDockingViewForPopup_nocreate
 {
 	return self.tabBar;
@@ -607,6 +624,9 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 - (UIEdgeInsets)insetsForBottomDockingView
 {
 	if (@available(iOS 11.0, *)) {
+        if ([self _popupShouldFollowTabBar]) {
+            return UIEdgeInsetsZero;
+        }
 		return self.tabBar.hidden == NO && self._isTabBarHiddenDuringTransition == NO ? UIEdgeInsetsZero : self.view.superview.safeAreaInsets;
 	} else {
 		return UIEdgeInsetsZero;
@@ -618,10 +638,20 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	CGRect bottomBarFrame = self.tabBar.frame;
 	CGSize bottomBarSizeThatFits = [self.tabBar sizeThatFits:CGSizeZero];
 	bottomBarFrame.size.height = MAX(bottomBarFrame.size.height, bottomBarSizeThatFits.height);
-	
-	bottomBarFrame.origin = CGPointMake(0, self.view.bounds.size.height - (self._isTabBarHiddenDuringTransition ? 0.0 : bottomBarFrame.size.height));
+
+    if ([self _popupShouldFollowTabBar])
+    {
+        bottomBarFrame.origin = CGPointMake(bottomBarFrame.origin.x, self.view.bounds.size.height - bottomBarFrame.size.height);
+    }
+    else {
+        bottomBarFrame.origin = CGPointMake(0, self.view.bounds.size.height - (self._isTabBarHiddenDuringTransition ? 0.0 : bottomBarFrame.size.height));
+    }
 	
 	return bottomBarFrame;
+}
+
+- (BOOL)shouldPresentPopup {
+    return self.tabBar.hidden ? ![self _popupShouldFollowTabBar] : YES;
 }
 
 + (void)load
@@ -690,13 +720,26 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 //_edgeInsetsForChildViewController:insetsAreAbsolute:
 - (UIEdgeInsets)eIFCVC:(UIViewController*)controller iAA:(BOOL*)absolute
 {
-	return [self _ln_common_eIFCVC:controller iAA:absolute];
+    UIEdgeInsets insets = [self _ln_common_eIFCVC:controller iAA:absolute];
+
+    if(NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 11)
+    {
+        if([self _popupShouldFollowTabBar])
+        {
+            insets.bottom -= self._ln_popupController_nocreate.popupBar.bounds.size.height;
+        }
+    }
+
+    return insets;
 }
 
 - (void)__repositionPopupBarToClosed_hack
 {
 	CGRect defaultFrame = [self defaultFrameForBottomDockingView];
 	CGRect frame = self._ln_popupController_nocreate.popupBar.frame;
+    if ([self _popupShouldFollowTabBar]) {
+        frame.origin.x = defaultFrame.origin.x;
+    }
 	frame.origin.y = defaultFrame.origin.y - frame.size.height - self.insetsForBottomDockingView.bottom;
 	self._ln_popupController_nocreate.popupBar.frame = frame;
 }
@@ -704,6 +747,14 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 //_hideBarWithTransition:isExplicit:
 - (void)hBWT:(NSInteger)t iE:(BOOL)e
 {
+    UIViewController *toViewController = [self.selectedViewController.transitionCoordinator viewControllerForKey:UITransitionContextToViewControllerKey];
+    if (toViewController == nil) {
+        toViewController = self.selectedViewController.childViewControllers.lastObject;
+    }
+    if ([toViewController conformsToProtocol:@protocol(LNPopupHiddenController)]) {
+        [self _setPopupShouldFollowTabBar:YES];
+    }
+
 	[self _setTabBarHiddenDuringTransition:YES];
 	[self _setIgnoringLayoutDuringTransition:YES];
 	
@@ -717,9 +768,32 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
             [self __repositionPopupBarToClosed_hack];
         } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
 			[self _setIgnoringLayoutDuringTransition:NO];
-			[self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+
+            if ([self _popupShouldFollowTabBar])
+            {
+                [self._ln_popupController_nocreate _setContentToState:LNPopupPresentationStateHidden];
+
+                [self._ln_popupController_nocreate.popupBar setHidden:YES];
+                [self._ln_popupController_nocreate.popupContentView setHidden:YES];
+            }
+            else
+            {
+                [self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+            }
 		}];
-	}
+
+        if ([self _popupShouldFollowTabBar])
+        {
+            [UIView animateWithDuration:self.selectedViewController.transitionCoordinator.transitionDuration animations:^{
+                _LNPopupSupportFixInsetsForViewController(self, NO, -self.popupBar.frame.size.height);
+            }];
+        }
+    }
+    else if ([self _popupShouldFollowTabBar])
+    {
+        [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
+        [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+    }
 }
 
 //_showBarWithTransition:isExplicit:
@@ -728,23 +802,61 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	[self _setTabBarHiddenDuringTransition:NO];
 	
 	[self sBWT:t iE:e];
+
+    [self._ln_popupController_nocreate.popupBar setHidden:NO];
+    [self._ln_popupController_nocreate.popupContentView setHidden:NO];
 	
 	if(t > 0)
 	{
+        if ([self _popupShouldFollowTabBar]) {
+            [self __repositionPopupBarToClosed_hack];
+        }
+
         [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
             [self __repositionPopupBarToClosed_hack];
         } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-            if(context.isCancelled)
+            BOOL isCancelled = context.isCancelled;
+            if(isCancelled)
             {
                 [self _setTabBarHiddenDuringTransition:YES];
+
+                [self._ln_popupController_nocreate.popupBar setHidden:YES];
+                [self._ln_popupController_nocreate.popupContentView setHidden:YES];
             }
             [UIView animateWithDuration:0.15 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0.0 options:0 animations:^{
                 [self __repositionPopupBarToClosed_hack];
             } completion:^(BOOL finished) {
-                [self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+                if(!isCancelled)
+                {
+                    if ([self _popupShouldFollowTabBar])
+                    {
+                        [self._ln_popupController_nocreate _setContentToState:LNPopupPresentationStateClosed];
+                    }
+                    else
+                    {
+                        [self._ln_popupController_nocreate _setContentToState:self._ln_popupController_nocreate.popupControllerState];
+                    }
+
+                    [self _setPopupShouldFollowTabBar:NO];
+                }
+                else
+                {
+                    [self._ln_popupController_nocreate _setContentToState:LNPopupPresentationStateHidden];
+                }
             }];
+
+            if ([self _popupShouldFollowTabBar] && !isCancelled)
+            {
+                [UIView animateWithDuration:self.selectedViewController.transitionCoordinator.transitionDuration animations:^{
+                    _LNPopupSupportFixInsetsForViewController(self, NO, self.popupBar.frame.size.height);
+                }];
+            }
         }];
-	}
+    }
+    else if ([self _popupShouldFollowTabBar])
+    {
+        [self _setPopupShouldFollowTabBar:NO];
+    }
 }
 #endif
 
@@ -780,6 +892,10 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 	toolbarBarFrame.origin = CGPointMake(toolbarBarFrame.origin.x, self.view.bounds.size.height - (self.isToolbarHidden ? 0.0 : toolbarBarFrame.size.height));
 	
 	return toolbarBarFrame;
+}
+
+- (BOOL)shouldPresentPopup {
+    return YES;
 }
 
 + (void)load

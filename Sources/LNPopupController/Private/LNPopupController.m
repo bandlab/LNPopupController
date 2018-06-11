@@ -1190,6 +1190,13 @@ static void __LNPopupControllerDeeplyEnumerateSubviewsUsingBlock(UIView* view, v
 		
 		[UIView animateWithDuration:animated ? 0.5 : 0.0 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0 options:UIViewAnimationOptionCurveEaseInOut animations:^
 		 {
+             if (![_containerController shouldPresentPopup]) {
+                 [self.popupBar setHidden:YES];
+                 [self.popupContentView setHidden:YES];
+
+                 return;
+             }
+
 			 CGRect barFrame = self.popupBar.frame;
 			 barFrame.size.height = _LNPopupBarHeightForBarStyle(_LNPopupResolveBarStyleFromBarStyle(self.popupBar.barStyle), self.popupBar.customBarViewController);
 			 self.popupBar.frame = barFrame;

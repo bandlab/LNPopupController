@@ -36,6 +36,8 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 - (CGRect)defaultFrameForBottomDockingView_internal;
 - (CGRect)defaultFrameForBottomDockingView_internalOrDeveloper;
 
+- (BOOL)shouldPresentPopup;
+
 @end
 
 NS_ASSUME_NONNULL_END
