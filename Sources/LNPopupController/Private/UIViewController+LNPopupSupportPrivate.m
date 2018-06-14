@@ -352,32 +352,44 @@ void _LNPopupSupportFixInsetsForViewController(UIViewController* controller, BOO
 
 - (void)hBWT:(NSInteger)t iE:(BOOL)e
 {
-	[self hBWT:t iE:e];
-	[self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-	[self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-	[self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
-	
-	[self.selectedViewController.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context)
-	 {
-		 [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-		 [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-		 [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
-	 }];
+    [self hBWT:t iE:e];
+    [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
+    [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
+    [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+
+    [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        [self __repositionPopupBarToFollowTabBar_hack];
+    } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
+        [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
+        [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+    }];
 }
 
 - (void)sBWT:(NSInteger)t iE:(BOOL)e
 {
-	[self sBWT:t iE:e];
-	[self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-	[self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-	[self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
-	
-	[self.selectedViewController.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context)
-	 {
-		 [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
-		 [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
-		 [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
-	 }];
+    [self sBWT:t iE:e];
+
+    [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
+    [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+
+    [self __repositionPopupBarToFollowTabBar_hack];
+
+    [self.selectedViewController.transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
+        [self __repositionPopupBarToFollowTabBar_hack];
+    } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        [self._ln_popupController_nocreate _movePopupBarAndContentToBottomBarSuperview];
+        [self._ln_popupController_nocreate.popupBar setHidden:self.tabBar.hidden];
+        [self._ln_popupController_nocreate.popupContentView setHidden:self.tabBar.hidden];
+    }];
+}
+
+- (void)__repositionPopupBarToFollowTabBar_hack
+{
+    CGRect frame = self._ln_popupController_nocreate.popupBar.frame;
+    frame.origin.x = self.tabBar.frame.origin.x;
+    self._ln_popupController_nocreate.popupBar.frame = frame;
 }
 #endif
 
