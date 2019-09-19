@@ -159,7 +159,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		[self _innerSetBackgroundStyle:LNBackgroundStyleInherit];
 		
 		_toolbar = [[_LNPopupToolbar alloc] initWithFrame:self.bounds];
-		[_toolbar setBackgroundImage:[UIImage alloc] forToolbarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
+		[_toolbar setBackgroundImage:[[UIImage alloc] init] forToolbarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
 		_toolbar.autoresizingMask = UIViewAutoresizingNone;
 		_toolbar.layer.masksToBounds = YES;
 		[self addSubview:_toolbar];
