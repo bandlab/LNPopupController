@@ -176,7 +176,7 @@ UIBlurEffectStyle _LNBlurEffectStyleForSystemBarStyle(UIBarStyle systemBarStyle,
 		
 		_progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
 		_progressView.translatesAutoresizingMaskIntoConstraints = NO;
-		_progressView.trackImage = [UIImage alloc];
+		_progressView.trackImage = [[UIImage alloc] init];
 		[_toolbar addSubview:_progressView];
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_progressView(2)]|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_progressView)]];
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[_progressView]|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_progressView)]];
