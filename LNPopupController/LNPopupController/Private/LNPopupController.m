@@ -262,6 +262,10 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 	return CGRectMake(defaultFrame.origin.x, defaultFrame.origin.y - self.popupBar.frame.size.height, _containerController.view.bounds.size.width, self.popupBar.frame.size.height);
 }
 
+- (void)updatePopupFrames {
+    [self _setContentToState:self.popupControllerState];
+}
+
 - (void)_repositionPopupContentMovingBottomBar:(BOOL)bottomBar
 {
 	UIView* relativeViewForContentView = _bottomBar;
