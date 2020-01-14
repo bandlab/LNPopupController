@@ -47,5 +47,6 @@
 - (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)())completionBlock;
 
 - (void)_configurePopupBarFromBottomBar;
+- (void)updatePopupFrames;
 
 @end

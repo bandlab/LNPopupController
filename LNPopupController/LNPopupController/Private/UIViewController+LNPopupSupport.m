@@ -139,6 +139,10 @@ static const void* _LNPopupBottomBarSupportKey = &_LNPopupBottomBarSupportKey;
 	return self._ln_popupController.popupBarStorage;
 }
 
+- (LNPopupBar *)popupBarIfLoaded {
+    return self._ln_popupController_nocreate.popupBarStorage;
+}
+
 - (LNPopupContentView *)popupContentView
 {
 	return self._ln_popupController.popupContentView;
@@ -244,6 +248,10 @@ static const void* _LNPopupBottomBarSupportKey = &_LNPopupBottomBarSupportKey;
 - (CGRect)defaultFrameForBottomDockingView_internalOrDeveloper
 {
 	return [self bottomDockingViewForPopupBar] != nil ? [self defaultFrameForBottomDockingView] : [self defaultFrameForBottomDockingView_internal];
+}
+
+- (void)updatePopupFrames {
+    [self._ln_popupController_nocreate updatePopupFrames];
 }
 
 @end
