@@ -12,3 +12,4 @@
 #import <LNPopupController/LNPopupBar.h>
 #import <LNPopupController/LNPopupCustomBarViewController.h>
 #import <LNPopupController/UIViewController+LNPopupSupport.h>
+#import <LNPopupController/LNPopupControllerObject.h>

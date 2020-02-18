@@ -6,7 +6,7 @@
 //  Copyright © 2015 Leo Natan. All rights reserved.
 //
 
-#import "LNPopupController.h"
+#import "LNPopupControllerObject.h"
 #import "LNPopupItem+Private.h"
 #import "LNPopupCloseButton+Private.h"
 @import ObjectiveC;
@@ -103,7 +103,7 @@ static const CGFloat		LNPopupBarDeveloperPanGestureThreshold = 0;
 }
 
 - (BOOL)animateAlongsideTransition:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))animation
-						completion:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))completion
+                        completion:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))completion;
 {
 	if(animation)
 	{
@@ -119,13 +119,13 @@ static const CGFloat		LNPopupBarDeveloperPanGestureThreshold = 0;
 }
 
 - (BOOL)animateAlongsideTransitionInView:(nullable UIView *)view
-							   animation:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))animation
-							  completion:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))completion
+                               animation:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))animation
+                              completion:(void (^ __nullable)(id <UIViewControllerTransitionCoordinatorContext>context))completion;
 {
 	return [self animateAlongsideTransition:animation completion:completion];
 }
 
-- (void)notifyWhenInteractionEndsUsingBlock: (void (^)(id <UIViewControllerTransitionCoordinatorContext>context))handler
+- (void)notifyWhenInteractionChangesUsingBlock: (void (^)(id <UIViewControllerTransitionCoordinatorContext>context))handler;
 { }
 
 @end
@@ -243,7 +243,7 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 	{
 		_containerController = containerController;
 		
-		_popupControllerState = LNPopupPresentationStateHidden;
+		self.popupControllerState = LNPopupPresentationStateHidden;
 		_popupControllerTargetState = LNPopupPresentationStateHidden;
 	}
 	
@@ -390,8 +390,10 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		}];
 		[contentController endAppearanceTransition];
 	};;
-	
-	_popupControllerState = LNPopupPresentationStateTransitioning;
+
+    [self willChangeValueForKey:@"popupControllerState"];
+	self.popupControllerState = LNPopupPresentationStateTransitioning;
+    [self didChangeValueForKey:@"popupControllerState"];
 	_popupControllerTargetState = state;
 	
 	LNPopupInteractionStyle resolvedStyle = _LNPopupResolveInteractionStyleFromInteractionStyle(_containerController.popupInteractionStyle);
@@ -448,7 +450,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 			 UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, _popupContentView.popupCloseButton);
 		 }
 		 
-		 _popupControllerState = state;
+		 self.popupControllerState = state;
 
 		 if(completion)
 		 {
@@ -1012,11 +1014,11 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		
 		if(open)
 		{
-			_popupControllerState = LNPopupPresentationStateClosed;
+			self.popupControllerState = LNPopupPresentationStateClosed;
 		}
 		else
 		{
-			_popupControllerState = LNPopupPresentationStateTransitioning;
+			self.popupControllerState = LNPopupPresentationStateTransitioning;
 		}
 		_popupControllerTargetState = LNPopupPresentationStateClosed;
 		
@@ -1068,7 +1070,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		 {
 			 if(!open)
 			 {
-				 _popupControllerState = LNPopupPresentationStateClosed;
+				 self.popupControllerState = LNPopupPresentationStateClosed;
 			 }
 			 
 			 if(completionBlock != nil && !open)
@@ -1116,7 +1118,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	{
 		void (^dismissalAnimationCompletionBlock)() = ^
 		{
-			_popupControllerState = LNPopupPresentationStateTransitioning;
+			self.popupControllerState = LNPopupPresentationStateTransitioning;
 			_popupControllerTargetState = LNPopupPresentationStateHidden;
 			
 			[UIView animateWithDuration:animated ? 0.5 : 0.0 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0 options:UIViewAnimationOptionCurveEaseInOut animations:^
@@ -1128,7 +1130,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 				 _LNPopupSupportFixInsetsForViewController(_containerController, YES);
 			 } completion:^(BOOL finished)
 			 {
-				 _popupControllerState = LNPopupPresentationStateHidden;
+				 self.popupControllerState = LNPopupPresentationStateHidden;
 				 
 				 _bottomBar.frame = [_containerController defaultFrameForBottomDockingView_internalOrDeveloper];
 				 _bottomBar = nil;

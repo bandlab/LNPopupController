@@ -13,6 +13,10 @@
 #import "LNPopupCloseButton.h"
 #import "LNPopupContentView.h"
 
+@protocol LNPopupControllerDelegate <NSObject>
+- (void)popupControllerDidUpdatePopupFrame:(CGRect)newFrame;
+@end
+
 @interface LNPopupController : NSObject
 
 - (instancetype)initWithContainerViewController:(__kindof UIViewController*)containerController;
@@ -32,8 +36,8 @@
 @property (nonatomic, strong) UITapGestureRecognizer* popupBarTapGestureRecognizer;
 @property (nonatomic) CGPoint lastPopupBarLocation;
 @property (nonatomic) CFTimeInterval lastSeenMovement;
-
 @property (nonatomic, weak) UIViewController* effectiveStatusBarUpdateController;
+@property (nonatomic, weak) id<LNPopupControllerDelegate> popupDelegate;
 
 - (CGFloat)_percentFromPopupBar;
 
