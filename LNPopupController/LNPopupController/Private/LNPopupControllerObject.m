@@ -125,8 +125,8 @@ static const CGFloat		LNPopupBarDeveloperPanGestureThreshold = 0;
 	return [self animateAlongsideTransition:animation completion:completion];
 }
 
-- (void)notifyWhenInteractionChangesUsingBlock: (void (^)(id <UIViewControllerTransitionCoordinatorContext>context))handler;
-{ }
+- (void)notifyWhenInteractionEndsUsingBlock:(nonnull void (^)(id<UIViewControllerTransitionCoordinatorContext> _Nonnull))handler {
+}
 
 @end
 
@@ -244,7 +244,7 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 		_containerController = containerController;
 		
 		self.popupControllerState = LNPopupPresentationStateHidden;
-		_popupControllerTargetState = LNPopupPresentationStateHidden;
+		self.popupControllerTargetState = LNPopupPresentationStateHidden;
 	}
 	
 	return self;
@@ -264,6 +264,16 @@ LNPopupCloseButtonStyle _LNPopupResolveCloseButtonStyleFromCloseButtonStyle(LNPo
 
 - (void)updatePopupFrames {
     [self _setContentToState:self.popupControllerState];
+}
+
+- (void)setPopupControllerTargetState:(LNPopupPresentationState)popupControllerTargetState {
+    _popupControllerTargetState = popupControllerTargetState;
+    [self.popupDelegate popupControllerDidUpdateTargetState:popupControllerTargetState];
+}
+
+- (void)setPopupControllerState:(LNPopupPresentationState)popupControllerState {
+    _popupControllerState = popupControllerState;
+    [self.popupDelegate popupControllerDidUpdateCurrentState:popupControllerState];
 }
 
 - (void)_repositionPopupContentMovingBottomBar:(BOOL)bottomBar
@@ -394,7 +404,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
     [self willChangeValueForKey:@"popupControllerState"];
 	self.popupControllerState = LNPopupPresentationStateTransitioning;
     [self didChangeValueForKey:@"popupControllerState"];
-	_popupControllerTargetState = state;
+	self.popupControllerTargetState = state;
 	
 	LNPopupInteractionStyle resolvedStyle = _LNPopupResolveInteractionStyleFromInteractionStyle(_containerController.popupInteractionStyle);
 	
@@ -506,7 +516,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 			pgr.enabled = NO;
 			pgr.enabled = YES;
 			
-			_popupControllerTargetState = LNPopupPresentationStateOpen;
+			self.popupControllerTargetState = LNPopupPresentationStateOpen;
 			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 				[self _transitionToState:_popupControllerTargetState animated:YES useSpringAnimation:_popupControllerTargetState == LNPopupPresentationStateClosed ? YES : NO allowPopupBarAlphaModification:YES completion:nil transitionOriginatedByUser:NO];
 			});
@@ -610,7 +620,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 			pgr.enabled = NO;
 			pgr.enabled = YES;
 			
-			_popupControllerTargetState = LNPopupPresentationStateClosed;
+			self.popupControllerTargetState = LNPopupPresentationStateClosed;
 			[self _transitionToState:_popupControllerTargetState animated:YES useSpringAnimation:_popupControllerTargetState == LNPopupPresentationStateClosed ? YES : NO allowPopupBarAlphaModification:YES completion:^ {
 				[_popupContentView.popupCloseButton _setButtonContainerStationary];
 			} transitionOriginatedByUser:NO];
@@ -999,7 +1009,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	}];
 }
 
-- (void)presentPopupBarAnimated:(BOOL)animated openPopup:(BOOL)open completion:(void(^)())completionBlock
+- (void)presentPopupBarAnimated:(BOOL)animated openPopup:(BOOL)open completion:(void(^)(void))completionBlock
 {
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_applicationDidEnterBackground) name:UIApplicationDidEnterBackgroundNotification object:nil];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_applicationWillEnterForeground) name:UIApplicationWillEnterForegroundNotification object:nil];
@@ -1020,7 +1030,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 		{
 			self.popupControllerState = LNPopupPresentationStateTransitioning;
 		}
-		_popupControllerTargetState = LNPopupPresentationStateClosed;
+		self.popupControllerTargetState = LNPopupPresentationStateClosed;
 		
 		_bottomBar = _containerController.bottomDockingViewForPopup_internalOrDeveloper;
 		
@@ -1096,7 +1106,7 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	_currentContentController = _containerController.popupContentViewController;
 }
 
-- (void)openPopupAnimated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)openPopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	[self _transitionToState:LNPopupPresentationStateTransitioning animated:NO useSpringAnimation:NO allowPopupBarAlphaModification:YES completion:^{
 		[_containerController.view setNeedsLayout];
@@ -1105,21 +1115,21 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 	} transitionOriginatedByUser:YES];
 }
 
-- (void)closePopupAnimated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)closePopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	LNPopupInteractionStyle resolvedStyle = _LNPopupResolveInteractionStyleFromInteractionStyle(_containerController.popupInteractionStyle);
 	
 	[self _transitionToState:LNPopupPresentationStateClosed animated:animated useSpringAnimation:resolvedStyle == LNPopupInteractionStyleSnap ? YES : NO allowPopupBarAlphaModification:YES completion:completionBlock transitionOriginatedByUser:YES];
 }
 
-- (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)())completionBlock
+- (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)(void))completionBlock
 {
 	if(_popupControllerState != LNPopupPresentationStateHidden)
 	{
 		void (^dismissalAnimationCompletionBlock)() = ^
 		{
 			self.popupControllerState = LNPopupPresentationStateTransitioning;
-			_popupControllerTargetState = LNPopupPresentationStateHidden;
+			self.popupControllerTargetState = LNPopupPresentationStateHidden;
 			
 			[UIView animateWithDuration:animated ? 0.5 : 0.0 delay:0.0 usingSpringWithDamping:500 initialSpringVelocity:0 options:UIViewAnimationOptionCurveEaseInOut animations:^
 			 {

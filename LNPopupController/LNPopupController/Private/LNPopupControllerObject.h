@@ -14,7 +14,8 @@
 #import "LNPopupContentView.h"
 
 @protocol LNPopupControllerDelegate <NSObject>
-- (void)popupControllerDidUpdatePopupFrame:(CGRect)newFrame;
+- (void)popupControllerDidUpdateTargetState:(LNPopupPresentationState)targetState;
+- (void)popupControllerDidUpdateCurrentState:(LNPopupPresentationState)currentState;
 @end
 
 @interface LNPopupController : NSObject
@@ -45,10 +46,10 @@
 
 - (void)_movePopupBarAndContentToBottomBarSuperview;
 
-- (void)presentPopupBarAnimated:(BOOL)animated openPopup:(BOOL)open completion:(void(^)())completionBlock;
-- (void)openPopupAnimated:(BOOL)animated completion:(void(^)())completionBlock;
-- (void)closePopupAnimated:(BOOL)animated completion:(void(^)())completionBlock;
-- (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)())completionBlock;
+- (void)presentPopupBarAnimated:(BOOL)animated openPopup:(BOOL)open completion:(void(^)(void))completionBlock;
+- (void)openPopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock;
+- (void)closePopupAnimated:(BOOL)animated completion:(void(^)(void))completionBlock;
+- (void)dismissPopupBarAnimated:(BOOL)animated completion:(void(^)(void))completionBlock;
 
 - (void)_configurePopupBarFromBottomBar;
 - (void)updatePopupFrames;
