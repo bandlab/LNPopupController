@@ -537,6 +537,10 @@ static CGFloat __smoothstep(CGFloat a, CGFloat b, CGFloat x)
 
 - (void)_popupBarPresentationByUserPanGestureHandler_changed:(UIPanGestureRecognizer*)pgr
 {
+    CGPoint velocity = [pgr velocityInView:pgr.view];
+    if (fabs(velocity.y) < fabs(velocity.x)) {
+        return;
+    }
 	LNPopupInteractionStyle resolvedStyle = _LNPopupResolveInteractionStyleFromInteractionStyle(_containerController.popupInteractionStyle);
 	
 	if(pgr != _popupContentView.popupInteractionGestureRecognizer)
